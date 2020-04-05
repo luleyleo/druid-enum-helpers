@@ -12,3 +12,6 @@ path = "match-derive"
 
 [dependencies.match-macro]
 path = "match-macro"
+
+[dependencies.match-macro-impl]
+path = "match-macro-impl"

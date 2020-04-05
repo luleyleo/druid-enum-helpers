@@ -1,8 +1,6 @@
 extern crate proc_macro;
 
-#[proc_macro]
-pub fn match_widget(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let _ = input;
-    unimplemented!()
-}
+use proc_macro_hack::proc_macro_hack;
 
+#[proc_macro_hack]
+pub use match_macro_impl::match_widget;

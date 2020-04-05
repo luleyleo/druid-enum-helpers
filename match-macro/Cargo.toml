@@ -4,7 +4,8 @@ version = "0.1.0"
 authors = ["Leopold Luley <git@leopoldluley.de>"]
 edition = "2018"
 
-[lib]
-proc-macro = true
-
 [dependencies]
+proc-macro-hack = "0.5.15"
+
+[dependencies.match-macro-impl]
+path = "../match-macro-impl"
