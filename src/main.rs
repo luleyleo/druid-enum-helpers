@@ -13,9 +13,9 @@ enum Event {
 }
 
 fn main() {
-    match_widget! { Event,
-        Click(u32) => (),
-        Key => (),
+    match_widget! { crate::Event,
+        Event::Click(u32) => (),
+        Event::Key => (),
     };
     println!("Hello, world!");
 }

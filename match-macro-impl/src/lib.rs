@@ -8,15 +8,15 @@ use syn::parse_macro_input;
 
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{Expr, Ident, Result, Token, Type};
+use syn::{Expr, Path, Result, Token, Type};
 
 struct WidgetMatch {
-    subject: Ident,
+    subject: Path,
     branches: Vec<MatchBranch>,
 }
 
 struct MatchBranch {
-    variant: Ident,
+    variant: Path,
     params: Vec<Type>,
     expr: Expr,
 }
