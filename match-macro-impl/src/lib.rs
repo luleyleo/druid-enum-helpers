@@ -63,10 +63,29 @@ impl Parse for MatchBranch {
 
 #[proc_macro_hack]
 pub fn match_widget(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let wm = parse_macro_input!(input as WidgetMatch);
+    let wm: WidgetMatch = parse_macro_input!(input as WidgetMatch);
+
+    let target = wm.subject;
+
+    let branches = wm.branches.into_iter().map(|branch: MatchBranch| {
+        let variant = branch.variant;
+        let result = branch.expr;
+        if branch.params.is_empty() {
+            quote! {
+                #variant => #result
+            }
+        } else {
+            let pattern = branch.params.iter().map(|_| quote!(_));
+            quote! {
+                #variant(#(#pattern),*) => #result
+            }
+        }
+    });
 
     let output = quote! {
-        ()
+        |target: #target| match target {
+            #(#branches,)*
+        }
     };
 
     proc_macro::TokenStream::from(output)

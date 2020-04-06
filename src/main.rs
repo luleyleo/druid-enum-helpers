@@ -8,14 +8,14 @@ use match_derive::Matcher;
 use match_macro::match_widget;
 
 enum Event {
-    Click,
+    Click(u32),
     Key,
 }
 
 fn main() {
-    match_widget! { crate::Event,
-        Event::Click(u32) => (),
-        Event::Key => (),
+    let fun = match_widget! { Event,
+        Event::Click(u32) => println!("Click"),
+        Event::Key => println!("Key"),
     };
-    println!("Hello, world!");
+    fun(Event::Click(42));
 }
