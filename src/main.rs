@@ -14,7 +14,7 @@ enum Event {
 
 fn main() {
     match_widget! { Event,
-        Click => (),
+        Click(u32) => (),
         Key => (),
     };
     println!("Hello, world!");

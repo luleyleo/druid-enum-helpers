@@ -7,7 +7,8 @@ use quote::quote;
 use syn::parse_macro_input;
 
 use syn::parse::{Parse, ParseStream};
-use syn::{Expr, Ident, Result, Token};
+use syn::punctuated::Punctuated;
+use syn::{Expr, Ident, Result, Token, Type};
 
 struct WidgetMatch {
     subject: Ident,
@@ -16,6 +17,7 @@ struct WidgetMatch {
 
 struct MatchBranch {
     variant: Ident,
+    params: Vec<Type>,
     expr: Expr,
 }
 
@@ -36,9 +38,26 @@ impl Parse for WidgetMatch {
 impl Parse for MatchBranch {
     fn parse(input: ParseStream) -> Result<Self> {
         let variant = input.parse()?;
+
+        let params = if input.peek(syn::token::Paren) {
+            let types;
+            syn::parenthesized!(types in input);
+            Punctuated::<Type, Token![,]>::parse_separated_nonempty(&types)?
+                .into_iter()
+                .collect()
+        } else {
+            Vec::new()
+        };
+
         input.parse::<Token![=>]>()?;
+
         let expr = input.parse()?;
-        Ok(MatchBranch { variant, expr })
+
+        Ok(MatchBranch {
+            variant,
+            params,
+            expr,
+        })
     }
 }
 
