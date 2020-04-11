@@ -83,7 +83,7 @@ pub fn match_widget(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     });
 
     let output = quote! {
-        |target: #target| match target {
+        |target: &#target| match target {
             #(#branches,)*
         }
     };
