@@ -7,8 +7,8 @@ use match_derive::Matcher;
 #[allow(unused_imports)]
 use match_macro::match_widget;
 
-use druid::widget::{Label, Button, SizedBox};
-use druid::{Data, Widget};
+use druid::widget::{Button, Flex, Label, SizedBox};
+use druid::{AppLauncher, Data, Lens, Widget, WidgetExt, WindowDesc};
 
 mod matcher;
 
@@ -19,12 +19,42 @@ enum Event {
     Unknown,
 }
 
+#[derive(Clone, Data, Lens)]
+struct AppState {
+    event: Event,
+}
+
 fn main() {
-    let matcher = matcher::WidgetMatcher::new(
-        match_widget! { Event,
-            Event::Click(u32, u32) => Label::new("test"),
-            Event::Key(char) => Button::new("test"),
-            Event::Unknown => SizedBox::empty(),
-        }
-    );
+    let window = WindowDesc::new(build_ui);
+
+    let state = AppState {
+        event: Event::Key('Z'),
+    };
+
+    AppLauncher::with_window(window)
+        .launch(state)
+        .expect("Failed to launch the application");
+}
+
+fn build_ui() -> impl Widget<AppState> {
+    let matcher = matcher::WidgetMatcher::new(match_widget! { Event,
+        Event::Click(u32, u32) => Label::new("click"),
+        Event::Key(char) => Button::new("key"),
+        Event::Unknown => SizedBox::empty(),
+    })
+    .lens(AppState::event);
+
+    Flex::column()
+        .with_child(
+            Button::new("Next State").on_click(|_, data: &mut AppState, _| {
+                data.event = match data.event {
+                    Event::Click(_, _) => Event::Key('Z'),
+                    Event::Key(_) => Event::Unknown,
+                    Event::Unknown => Event::Click(4, 2),
+                }
+            }),
+        )
+        .with_spacer(20.0)
+        .with_child(matcher)
+        .padding(10.0)
 }

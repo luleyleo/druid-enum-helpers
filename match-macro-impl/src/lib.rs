@@ -71,7 +71,7 @@ pub fn match_widget(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         let variant = branch.variant;
         let expr = branch.expr;
         let result = quote! {
-            { 
+            {
                 let widget = #expr;
                 let boxed: Box<dyn Widget<#target>> = Box::new(widget);
                 boxed

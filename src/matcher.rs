@@ -29,18 +29,16 @@ impl<D: Data> Widget<D> for WidgetMatcher<D> {
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &D, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
             self.content = Some(WidgetPod::new((self.constructor)(data)));
-            if self.content.is_some() {
-                ctx.children_changed();
-            }
+        }
+        if let Some(content) = &mut self.content {
+            content.lifecycle(ctx, event, data, env);
         }
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &D, data: &D, env: &Env) {
         if discriminant(old_data) != discriminant(data) {
             self.content = Some(WidgetPod::new((self.constructor)(data)));
-            if self.content.is_some() {
-                ctx.children_changed();
-            }
+            ctx.children_changed();
         } else {
             if let Some(content) = &mut self.content {
                 content.update(ctx, data, env);
@@ -49,10 +47,13 @@ impl<D: Data> Widget<D> for WidgetMatcher<D> {
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &D, env: &Env) -> Size {
-        self.content
-            .as_mut()
-            .map(|c| c.layout(ctx, bc, data, env))
-            .unwrap_or_default()
+        if let Some(content) = &mut self.content {
+            let size = content.layout(ctx, bc, data, env);
+            content.set_layout_rect(size.to_rect());
+            size
+        } else {
+            Size::default()
+        }
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &D, env: &Env) {
