@@ -7,7 +7,7 @@ use match_derive::Matcher;
 #[allow(unused_imports)]
 use match_macro::match_widget;
 
-use druid::widget::{Label, Button};
+use druid::widget::{Label, Button, SizedBox};
 use druid::{Data, Widget};
 
 mod matcher;
@@ -22,19 +22,9 @@ enum Event {
 fn main() {
     let matcher = matcher::WidgetMatcher::new(
         match_widget! { Event,
-            Event::Click(u32, u32) => {
-                let widget = Some(Label::new("test"));
-                widget.map(|w| {
-                    let boxed: Box<dyn Widget<Event>> = Box::new(w);
-                    boxed
-                })
-            },
-            Event::Key(char) => {
-                let widget = Button::new("test");
-                let boxed: Box<dyn Widget<Event>> = Box::new(widget);
-                Some(boxed)
-            },
-            Event::Unknown => None,
+            Event::Click(u32, u32) => Label::new("test"),
+            Event::Key(char) => Button::new("test"),
+            Event::Unknown => SizedBox::empty(),
         }
     );
 }

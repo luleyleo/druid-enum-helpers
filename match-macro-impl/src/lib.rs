@@ -69,7 +69,14 @@ pub fn match_widget(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let branches = wm.branches.into_iter().map(|branch: MatchBranch| {
         let variant = branch.variant;
-        let result = branch.expr;
+        let expr = branch.expr;
+        let result = quote! {
+            { 
+                let widget = #expr;
+                let boxed: Box<dyn Widget<#target>> = Box::new(widget);
+                boxed
+            }
+        };
         if branch.params.is_empty() {
             quote! {
                 #variant => #result

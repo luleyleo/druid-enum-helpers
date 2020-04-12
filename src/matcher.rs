@@ -4,13 +4,13 @@ use std::mem::discriminant;
 
 pub struct WidgetMatcher<D> {
     content: Option<WidgetPod<D, Box<dyn Widget<D>>>>,
-    constructor: Box<dyn Fn(&D) -> Option<Box<dyn Widget<D>>>>,
+    constructor: Box<dyn Fn(&D) -> Box<dyn Widget<D>>>,
 }
 
 impl<D> WidgetMatcher<D> {
     pub fn new<C>(constructor: C) -> Self
     where
-        C: Fn(&D) -> Option<Box<dyn Widget<D>>> + 'static,
+        C: Fn(&D) -> Box<dyn Widget<D>> + 'static,
     {
         WidgetMatcher {
             content: None,
@@ -28,7 +28,7 @@ impl<D: Data> Widget<D> for WidgetMatcher<D> {
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &D, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
-            self.content = (self.constructor)(data).map(WidgetPod::new);
+            self.content = Some(WidgetPod::new((self.constructor)(data)));
             if self.content.is_some() {
                 ctx.children_changed();
             }
@@ -37,7 +37,7 @@ impl<D: Data> Widget<D> for WidgetMatcher<D> {
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &D, data: &D, env: &Env) {
         if discriminant(old_data) != discriminant(data) {
-            self.content = (self.constructor)(data).map(WidgetPod::new);
+            self.content = Some(WidgetPod::new((self.constructor)(data)));
             if self.content.is_some() {
                 ctx.children_changed();
             }
