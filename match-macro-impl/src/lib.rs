@@ -73,7 +73,7 @@ pub fn match_widget(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         let result = quote! {
             {
                 let widget = #expr;
-                let boxed: Box<dyn Widget<#target>> = Box::new(widget);
+                let boxed: Box<dyn druid::Widget<#target>> = Box::new(widget);
                 boxed
             }
         };
@@ -90,9 +90,9 @@ pub fn match_widget(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     });
 
     let output = quote! {
-        |target: &#target| match target {
+        match_macro::WidgetMatcher::new(|target: &#target| match target {
             #(#branches,)*
-        }
+        })
     };
 
     proc_macro::TokenStream::from(output)

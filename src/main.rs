@@ -10,8 +10,6 @@ use match_macro::match_widget;
 use druid::widget::{Button, Flex, Label, SizedBox};
 use druid::{AppLauncher, Data, Lens, Widget, WidgetExt, WindowDesc};
 
-mod matcher;
-
 #[derive(Clone, Copy, Data)]
 enum Event {
     Click(u32, u32),
@@ -37,13 +35,6 @@ fn main() {
 }
 
 fn build_ui() -> impl Widget<AppState> {
-    let matcher = matcher::WidgetMatcher::new(match_widget! { Event,
-        Event::Click(u32, u32) => Label::new("click"),
-        Event::Key(char) => Button::new("key"),
-        Event::Unknown => SizedBox::empty(),
-    })
-    .lens(AppState::event);
-
     Flex::column()
         .with_child(
             Button::new("Next State").on_click(|_, data: &mut AppState, _| {
@@ -55,6 +46,14 @@ fn build_ui() -> impl Widget<AppState> {
             }),
         )
         .with_spacer(20.0)
-        .with_child(matcher)
+        .with_child(
+            match_widget! { Event,
+                Event::Click(u32, u32) => Label::new("click"),
+                Event::Key(char) => Button::new("key")
+                    .on_click(|_, _, _| println!("Key was clicked")),
+                Event::Unknown => SizedBox::empty(),
+            }
+            .lens(AppState::event),
+        )
         .padding(10.0)
 }
