@@ -3,7 +3,7 @@
 extern crate proc_macro;
 
 use proc_macro_hack::proc_macro_hack;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
 use syn::parse::{Parse, ParseStream};
@@ -70,13 +70,78 @@ pub fn match_widget(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let branches = wm.branches.into_iter().map(|branch: MatchBranch| {
         let variant = branch.variant;
         let expr = branch.expr;
+
+        let wtype = if branch.params.is_empty() {
+            quote! { () }
+        } else {
+            let params = branch.params.iter().cloned();
+            quote! {
+                (#(#params),*)
+            }
+        };
+
+        let param_count = branch.params.len();
+        let param_names: Vec<syn::Ident> = branch
+            .params
+            .iter()
+            .enumerate()
+            .map(|(i, _)| format_ident!("a{}", i))
+            .collect();
+
+        let assignments = param_names
+            .iter()
+            .enumerate()
+            .map(|(i, name)| (syn::Index::from(i), name))
+            .map(|(i, name)| {
+                if param_count == 1 {
+                    quote! { *#name = new }
+                } else {
+                    quote! { *#name = new.#i }
+                }
+            });
+
+        let lens = if branch.params.is_empty() {
+            quote! {
+                druid::lens::Map::new(
+                    |data: &#target| match data {
+                        #variant => (),
+                        _ => unreachable!(),
+                    },
+                    |data: &mut #target, new: #wtype| match data {
+                        #variant => (),
+                        _ => unreachable!(),
+                    }
+                )
+            }
+        } else {
+            let pn1 = param_names.iter();
+            let pn2 = param_names.iter();
+            let pn3 = param_names.iter();
+            quote! {
+                druid::lens::Map::new(
+                    |data: &#target| match data {
+                        #variant(#(#pn1),*) => (#(#pn2.clone()),*),
+                        _ => unreachable!(),
+                    },
+                    |data: &mut #target, new: #wtype| match data {
+                        #variant(#(#pn3),*) => {
+                            #(#assignments);*
+                        },
+                        _ => unreachable!(),
+                    }
+                )
+            }
+        };
+
         let result = quote! {
             {
                 let widget = #expr;
-                let boxed: Box<dyn druid::Widget<#target>> = Box::new(widget);
+                let lensed = widget.lens(#lens);
+                let boxed: Box<dyn druid::Widget<#target>> = Box::new(lensed);
                 boxed
             }
         };
+
         if branch.params.is_empty() {
             quote! {
                 #variant => #result
