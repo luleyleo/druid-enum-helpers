@@ -10,15 +10,32 @@ use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{Expr, Path, Result, Token, Type};
 
+enum PathOrWildcard {
+    Path(Path),
+    Wildcard,
+}
+
 struct WidgetMatch {
     subject: Path,
     branches: Vec<MatchBranch>,
 }
 
 struct MatchBranch {
-    variant: Path,
+    variant: PathOrWildcard,
     params: Vec<Type>,
     expr: Expr,
+}
+
+impl Parse for PathOrWildcard {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(Token![_]) {
+            input.parse::<Token![_]>()?;
+            Ok(PathOrWildcard::Wildcard)
+        } else {
+            let path: Path = input.parse()?;
+            Ok(PathOrWildcard::Path(path))
+        }
+    }
 }
 
 impl Parse for WidgetMatch {
@@ -37,7 +54,7 @@ impl Parse for WidgetMatch {
 
 impl Parse for MatchBranch {
     fn parse(input: ParseStream) -> Result<Self> {
-        let variant = input.parse()?;
+        let variant = PathOrWildcard::parse(input)?;
 
         let params = if input.peek(syn::token::Paren) {
             let types;
@@ -68,7 +85,10 @@ pub fn match_widget(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let target = wm.subject;
 
     let branches = wm.branches.into_iter().map(|branch: MatchBranch| {
-        let variant = branch.variant;
+        let variant = match branch.variant {
+            PathOrWildcard::Path(path) => quote!(#path),
+            PathOrWildcard::Wildcard => quote!(_),
+        };
         let expr = branch.expr;
 
         let wtype = if branch.params.is_empty() {
