@@ -1,8 +1,9 @@
 use druid::widget::prelude::*;
 use druid::{Data, WidgetPod};
-use std::mem::discriminant;
+use std::mem::{Discriminant, discriminant};
 
 pub struct WidgetMatcher<D> {
+    disc: Option<Discriminant<D>>,
     content: Option<WidgetPod<D, Box<dyn Widget<D>>>>,
     constructor: Box<dyn Fn(&D) -> Box<dyn Widget<D>>>,
 }
@@ -13,6 +14,7 @@ impl<D> WidgetMatcher<D> {
         C: Fn(&D) -> Box<dyn Widget<D>> + 'static,
     {
         WidgetMatcher {
+            disc: None,
             content: None,
             constructor: Box::new(constructor),
         }
@@ -21,7 +23,11 @@ impl<D> WidgetMatcher<D> {
 
 impl<D: Data> Widget<D> for WidgetMatcher<D> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut D, env: &Env) {
-        if let Some(content) = &mut self.content {
+        if self.disc != Some(discriminant(data)) {
+            self.content = Some(WidgetPod::new((self.constructor)(data)));
+            self.disc = Some(discriminant(data));
+            ctx.children_changed();
+        } if let Some(content) = &mut self.content {
             content.event(ctx, event, data, env);
         }
     }
@@ -35,9 +41,10 @@ impl<D: Data> Widget<D> for WidgetMatcher<D> {
         }
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &D, data: &D, env: &Env) {
-        if discriminant(old_data) != discriminant(data) {
+    fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &D, data: &D, env: &Env) {
+        if self.disc != Some(discriminant(data)) {
             self.content = Some(WidgetPod::new((self.constructor)(data)));
+            self.disc = Some(discriminant(data));
             ctx.children_changed();
         } else {
             if let Some(content) = &mut self.content {
