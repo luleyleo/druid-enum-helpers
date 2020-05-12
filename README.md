@@ -6,22 +6,34 @@ The two sub-crates implement the macros while the main crate is the testing grou
 
 ## match-macro
 
+This works already!
+
+Type inference is kinda broken :(
+
+Error messages are still a bit crappy when messing up types.
+
 ```rust
-fn event_widget() -> druid::Matcher<Event> {
-    match_widget! { Event, // could this type hint be ommited?
-        Event::Click(x, y) => Label::dynamic(|data, _| {
-            format!("x: {}, y: {}", data.x, data.y) // named touple?
+#[derive(Clone, Data)]
+enum Event {
+    Click(u32, u32),
+    Key(char),
+}
+
+fn event_widget() -> druid::WidgetMatcher<Event> {
+    match_widget! { Event,
+        Event::Click(u32, u32) => Label::dynamic(|data, _| {
+            format!("x: {}, y: {}", data.0, data.1)
         }),
-        Event::Key(_) => Label::dynamic(|data, _| format!("key: {}", data))),
+        Event::Key(char) => Label::dynamic(|data, _| format!("key: {}", data))),
     }
 }
 
 fn event_widget() -> impl Widget<Event> {
     match_widget! { Event,
-        Event::Click(x, y) => Label::dynamic(|data, _| {
-            format!("x: {}, y: {}", x, y) // not valid or changed to data.x?
+        Event::Click(u32, u32) => Label::dynamic(|data, _| {
+            format!("x: {}, y: {}", data.0, data.1)
         }),
-        _ => Label::dynamic(|data: &Event, _| format!("key: unhandled"))),
+        _ => Label::dynamic(|data: &(), _| format!("key: unhandled"))),
     }
 }
 ```
