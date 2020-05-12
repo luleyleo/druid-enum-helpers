@@ -49,7 +49,7 @@ impl<D: Data> Widget<D> for WidgetMatcher<D> {
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &D, env: &Env) -> Size {
         if let Some(content) = &mut self.content {
             let size = content.layout(ctx, bc, data, env);
-            content.set_layout_rect(size.to_rect());
+            content.set_layout_rect(ctx, data, env, size.to_rect());
             size
         } else {
             Size::default()
