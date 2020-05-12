@@ -20,6 +20,7 @@ enum Event {
 #[derive(Clone, Data, Lens)]
 struct AppState {
     event: Event,
+    option: Option<u32>,
 }
 
 fn main() {
@@ -27,6 +28,7 @@ fn main() {
 
     let state = AppState {
         event: Event::Key('Z'),
+        option: None,
     };
 
     AppLauncher::with_window(window)
@@ -46,6 +48,11 @@ fn build_ui() -> impl Widget<AppState> {
         Event::Unknown => SizedBox::empty(),
     };
 
+    let matcher2 = match_widget! { Option<u32>,
+        Some(u32) => Label::dynamic(|data: &u32, _| format!("Number {}", data)),
+        None => Label::new("No Number"),
+    };
+
     Flex::column()
         .with_child(
             Button::new("Next State").on_click(|_, data: &mut AppState, _| {
@@ -53,10 +60,15 @@ fn build_ui() -> impl Widget<AppState> {
                     Event::Click(_, _) => Event::Key('Z'),
                     Event::Key(_) => Event::Unknown,
                     Event::Unknown => Event::Click(4, 2),
-                }
+                };
+                data.option = match data.option {
+                    Some(_) => None,
+                    None => Some(42),
+                };
             }),
         )
         .with_spacer(20.0)
         .with_child(matcher.lens(AppState::event))
+        .with_child(matcher2.lens(AppState::option))
         .padding(10.0)
 }
