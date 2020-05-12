@@ -9,6 +9,7 @@ The two sub-crates implement the macros while the main crate is the testing grou
 This works already!
 
 Type inference is kinda broken :(
+Also, using a `{}` macro inside the ui declaration seems to disable formatting.
 
 Error messages are still a bit crappy when messing up types.
 
