@@ -1,5 +1,4 @@
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::parse_macro_input;
 
@@ -9,10 +8,13 @@ use parse::MatcherDerive;
 
 #[proc_macro_derive(Matcher, attributes(matcher))]
 pub fn derive(input: TokenStream) -> TokenStream {
+    // TODO when we generate a name that isn't a valid ident or is a keyword, generate a different
+    // name rather than panicking.
+    // TODO handle generics in the input
     let input = parse_macro_input!(input as MatcherDerive);
 
-    let name = &input.name;
-    let matcher_name = Ident::new(&format!("{}Matcher", name), Span::call_site());
+    let enum_name = &input.enum_name;
+    let matcher_name = input.resolve_matcher_name();
 
     let struct_fields = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
@@ -40,7 +42,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
         quote! {
-            #name::#variant_name(inner) => match &mut self.#builder_name {
+            #enum_name::#variant_name(inner) => match &mut self.#builder_name {
                 Some(widget) => widget.event(ctx, event, inner, env),
                 None => (),
             }
@@ -51,7 +53,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
         quote! {
-            #name::#variant_name(inner) => match &mut self.#builder_name {
+            #enum_name::#variant_name(inner) => match &mut self.#builder_name {
                 Some(widget) => widget.lifecycle(ctx, event, inner, env),
                 None => (),
             }
@@ -61,14 +63,21 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let update_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
-        todo!()
+        quote! {
+            (#enum_name::#variant_name(old_inner), #enum_name::#variant_name(inner)) => {
+                match &mut self.#builder_name {
+                    Some(widget) => widget.update(ctx, old_inner, inner, env),
+                    None => (),
+                }
+            }
+        }
     });
 
     let layout_match = input.variants.iter().map(|variant| {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
         quote! {
-            #name::#variant_name(inner) => match &mut self.#builder_name {
+            #enum_name::#variant_name(inner) => match &mut self.#builder_name {
                 Some(widget) => widget.layout(ctx, bc, inner, env),
                 None => bc.min(),
             }
@@ -79,7 +88,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         let builder_name = variant.resolve_builder_name();
         let variant_name = &variant.name;
         quote! {
-            #name::#variant_name(inner) => match &mut self.#builder_name {
+            #enum_name::#variant_name(inner) => match &mut self.#builder_name {
                 Some(widget) => widget.paint(ctx, inner, env),
                 None => (),
             }
@@ -87,7 +96,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
     });
 
     let output = quote! {
-        impl #name {
+        impl #enum_name {
             pub fn matcher() -> #matcher_name {
                 #matcher_name::new()
             }
@@ -95,23 +104,25 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
         struct #matcher_name {
             #(#struct_fields,)*
+            discriminant_: Option<::std::mem::Discriminant<#enum_name>>,
         }
 
         impl #matcher_name {
             fn new() -> Self {
                 Self {
                     #(#struct_defaults,)*
+                    discriminant_: None,
                 }
             }
             #(#builder_fns)*
         }
 
-        impl ::druid::Widget<#name> for #matcher_name {
+        impl ::druid::Widget<#enum_name> for #matcher_name {
             fn event(
                 &mut self,
                 ctx: &mut ::druid::EventCtx,
                 event: &::druid::Event,
-                data: &mut #name,
+                data: &mut #enum_name,
                 env: &::druid::Env
             ) {
                 match data {
@@ -122,33 +133,42 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 &mut self,
                 ctx: &mut ::druid::LifeCycleCtx,
                 event: &::druid::LifeCycle,
-                data: &#name,
+                data: &#enum_name,
                 env: &::druid::Env
             ) {
+                if let ::druid::LifeCycle::WidgetAdded = event {
+                    self.discriminant_ = Some(::std::mem::discriminant(data));
+                }
                 match data {
                     #(#lifecycle_match)*
                 }
             }
             fn update(&mut self,
                 ctx: &mut ::druid::UpdateCtx,
-                old_data: &#name,
-                data: &#name,
+                old_data: &#enum_name,
+                data: &#enum_name,
                 env: &::druid::Env
             ) {
-                todo!()
+                match (old_data, data) {
+                    #(#update_match)*
+                    _ => {
+                        ctx.children_changed();
+                        self.discriminant_ = Some(::std::mem::discriminant(data));
+                    }
+                }
             }
             fn layout(
                 &mut self,
                 ctx: &mut ::druid::LayoutCtx,
                 bc: &::druid::BoxConstraints,
-                data: &#name,
+                data: &#enum_name,
                 env: &::druid::Env
             ) -> ::druid::Size {
                 match data {
                     #(#layout_match)*
                 }
             }
-            fn paint(&mut self, ctx: &mut ::druid::PaintCtx, data: &#name, env: &::druid::Env) {
+            fn paint(&mut self, ctx: &mut ::druid::PaintCtx, data: &#enum_name, env: &::druid::Env) {
                 match data {
                     #(#paint_match)*
                 }
