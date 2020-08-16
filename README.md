@@ -1,6 +1,6 @@
 # Druid enum helpers
 
-In this repo I work on implementing the ideas mentioned in [druid#789](https://github.com/xi-editor/druid/issues/789)
+In this repo I work on implementing the ideas mentioned in [druid#789](https://github.com/linebender/druid/issues/789)
 
 The two sub-crates implement the macros while the main crate is the testing ground.
 
