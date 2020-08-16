@@ -1,5 +1,7 @@
 # Druid enum helpers
 
+NOTE: If you are only interested in the derive macro, check out [`druid-enums`](https://github.com/Finnerale/druid-enums). It is more advanced than the derive macro in this repo, and the derive macro is IMO much nicer to use than the match macro.
+
 In this repo I work on implementing the ideas mentioned in [druid#789](https://github.com/linebender/druid/issues/789)
 
 The two sub-crates implement the macros while the main crate is the testing ground.
