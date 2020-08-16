@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 proc-macro-hack = "0.5.15"
-druid = { git = "https://github.com/xi-editor/druid" }
+druid = { git = "https://github.com/linebender/druid.git" }
 
 [dependencies.match-macro-impl]
 path = "../match-macro-impl"
